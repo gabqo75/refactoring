@@ -7,7 +7,7 @@ public class Utils {
 
     private static final double CENTIMES_PAR_EURO = 100.0;
 
-    public static SimpleDateFormat FORMAT_DATE = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat FORMAT_DATE = new SimpleDateFormat("dd/MM/yyyy");
 
     public static double arrondir(double valeur) {
         return Math.round(valeur * CENTIMES_PAR_EURO) / CENTIMES_PAR_EURO;

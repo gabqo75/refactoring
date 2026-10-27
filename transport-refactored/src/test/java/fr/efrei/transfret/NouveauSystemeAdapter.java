@@ -20,27 +20,28 @@ import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
 /**
- * Branche le code historique sur les tests de contrat.
+ * Branche le nouveau code sur les tests de contrat.
  * <p>
- * Tout le « bricolage » nécessaire pour tester l'ancien code (état statique à vider,
- * conversion des codes {@code String}/{@code int}…) est confiné ici.
+ * Construit le graphe d'objets et traduit les types du contrat vers ceux du nouveau code.
  */
 public class NouveauSystemeAdapter implements SystemeTransport {
 
+    private ClientRepository clientRepository;
+    private ExpeditionRepository expeditionRepository;
+    private EmailService email;
+    private SmsService sms;
     private ServiceClient serviceClient;
     private ServiceExpedition serviceExpedition;
 
     @Override
     public void reinitialiser() {
-        Database.getInstance();
-        Database.expeditions.clear();
-        Database.clients.clear();
-        EmailService.journal.clear();
-        SmsService.journal.clear();
-        ServiceExpedition.compteur = 0;
-        Flotte.initialiser();
-        serviceClient = new ServiceClient();
-        serviceExpedition = new ServiceExpedition();
+        clientRepository = new ClientRepositoryEnMemoire();
+        expeditionRepository = new ExpeditionRepositoryEnMemoire();
+        email = new EmailService();
+        sms = new SmsService();
+        serviceClient = new ServiceClient(new ValidateurClient(), clientRepository, email);
+        serviceExpedition = new ServiceExpedition(expeditionRepository, new CalculateurPrix(),
+                new AffectationVehicule(new Flotte()), new ValidateurExpedition(), new EstimateurDelai(), new Notificateur(email, sms));
     }
 
     @Override
@@ -51,7 +52,7 @@ public class NouveauSystemeAdapter implements SystemeTransport {
 
     @Override
     public Optional<String> creerExpedition(DemandeExpedition d) {
-        Client client = Database.clients.get(d.refClient());
+        Client client = clientRepository.trouver(d.refClient());
         Expedition expedition = serviceExpedition.creerExpedition(client, versColis(d.colis()), d.villeDepart(),
                 d.villeArrivee(), ModeTransport.valueOf(d.mode().name()), d.urgent(), d.assurance());
         return Optional.ofNullable(expedition).map(Expedition::getId);
@@ -59,7 +60,7 @@ public class NouveauSystemeAdapter implements SystemeTransport {
 
     @Override
     public Optional<EtatExpedition> consulter(String id) {
-        Expedition e = Database.expeditions.get(id);
+        Expedition e = expeditionRepository.trouver(id);
         if (e == null) {
             return Optional.empty();
         }
@@ -92,16 +93,16 @@ public class NouveauSystemeAdapter implements SystemeTransport {
 
     @Override
     public Optional<String> facture(String id) {
-        return Optional.ofNullable(Database.expeditions.get(id)).map(new GenerateurFacture()::generer);
+        return Optional.ofNullable(expeditionRepository.trouver(id)).map(new GenerateurFacture()::generer);
     }
 
     @Override
     public List<Notification> notifications() {
         List<Notification> notifications = new ArrayList<>();
-        for (String[] email : EmailService.journal) {
+        for (String[] email : email.getJournal()) {
             notifications.add(new Notification(Canal.EMAIL, email[0], email[1]));
         }
-        for (String[] sms : SmsService.journal) {
+        for (String[] sms : sms.getJournal()) {
             notifications.add(new Notification(Canal.SMS, sms[0], sms[1]));
         }
         return notifications;
