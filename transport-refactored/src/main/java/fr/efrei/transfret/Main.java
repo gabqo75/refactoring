@@ -2,6 +2,7 @@ package fr.efrei.transfret;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
@@ -9,7 +10,15 @@ public class Main {
         EmailService email = new EmailService();
         SmsService sms = new SmsService();
         ServiceClient serviceClient = new ServiceClient(new ValidateurClient(), new ClientRepositoryEnMemoire(), email);
-        ServiceExpedition serviceExpedition = new ServiceExpedition(new ExpeditionRepositoryEnMemoire(), new CalculateurPrix(),
+        ServiceExpedition serviceExpedition = new ServiceExpedition(new ExpeditionRepositoryEnMemoire(), new CalculateurPrix(Map.of(
+                        ModeTransport.ROUTE, new TarifRoute(),
+                        ModeTransport.RAIL, new TarifRail(),
+                        ModeTransport.MER, new TarifMer(),
+                        ModeTransport.AIR, new TarifAir()),
+                Map.of(
+                        TypeClient.PARTICULIER, new SansRemise(),
+                        TypeClient.ENTREPRISE, new RemiseEntreprise(),
+                        TypeClient.PREMIUM, new RemisePremium())),
                 new AffectationVehicule(new Flotte()), new ValidateurExpedition(), new EstimateurDelai(), new Notificateur(email, sms));
 
         System.out.println("\n----- Clients -----");

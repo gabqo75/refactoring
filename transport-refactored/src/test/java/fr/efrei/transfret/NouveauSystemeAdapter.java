@@ -15,6 +15,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
@@ -40,7 +41,15 @@ public class NouveauSystemeAdapter implements SystemeTransport {
         email = new EmailService();
         sms = new SmsService();
         serviceClient = new ServiceClient(new ValidateurClient(), clientRepository, email);
-        serviceExpedition = new ServiceExpedition(expeditionRepository, new CalculateurPrix(),
+        serviceExpedition = new ServiceExpedition(expeditionRepository, new CalculateurPrix(Map.of(
+                        ModeTransport.ROUTE, new TarifRoute(),
+                        ModeTransport.RAIL, new TarifRail(),
+                        ModeTransport.MER, new TarifMer(),
+                        ModeTransport.AIR, new TarifAir()),
+                Map.of(
+                        TypeClient.PARTICULIER, new SansRemise(),
+                        TypeClient.ENTREPRISE, new RemiseEntreprise(),
+                        TypeClient.PREMIUM, new RemisePremium())),
                 new AffectationVehicule(new Flotte()), new ValidateurExpedition(), new EstimateurDelai(), new Notificateur(email, sms));
     }
 

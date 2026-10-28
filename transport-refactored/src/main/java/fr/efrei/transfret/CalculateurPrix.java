@@ -1,33 +1,25 @@
 package fr.efrei.transfret;
 
 import java.util.List;
+import java.util.Map;
 
 public class CalculateurPrix {
-
-    private static final double ROUTE_PRIX_KM = 1.2;
-    private static final double ROUTE_PRIX_KG = 0.10;
-    private static final double RAIL_PRIX_KM = 0.8;
-    private static final double RAIL_PRIX_KG = 0.07;
-    private static final double RAIL_MINIMUM = 150;
-    private static final double MER_PRIX_KM = 0.5;
-    private static final double MER_PRIX_KG = 0.03;
-    private static final double MER_MINIMUM = 500;
-    private static final double AIR_PRIX_KM = 0.6;
-    private static final double AIR_PRIX_KG_TAXABLE = 4.5;
-    private static final double AIR_FACTEUR_VOLUMETRIQUE = 167;
 
     private static final double SUPPLEMENT_FRAGILE = 1.15;
     private static final double SUPPLEMENT_DANGEREUX = 1.30;
     private static final double SUPPLEMENT_REFRIGERE = 1.20;
     private static final double SUPPLEMENT_URGENCE = 1.5;
 
-    private static final double SEUIL_GROSSE_COMMANDE_ENTREPRISE = 5000;
-    private static final double COEF_REMISE_ENTREPRISE_GROSSE_COMMANDE = 0.85;
-    private static final double COEF_REMISE_ENTREPRISE = 0.90;
-    private static final double COEF_REMISE_PREMIUM = 0.80;
-
     private static final double TAUX_ASSURANCE = 0.02;
     private static final double MINIMUM_ASSURANCE = 15;
+
+    private final Map<ModeTransport, TarifTransport> tarifs;
+    private final Map<TypeClient, PolitiqueRemise> remises;
+
+    public CalculateurPrix(Map<ModeTransport, TarifTransport> tarifs, Map<TypeClient, PolitiqueRemise> remises) {
+        this.tarifs = tarifs;
+        this.remises = remises;
+    }
 
     public double calculerPrixHT(List<Colis> colis, int distance, ModeTransport mode, boolean urgent, boolean assurance, TypeClient typeClient) {
         double poids = 0;
@@ -46,24 +38,7 @@ public class CalculateurPrix {
         }
 
         // tarif de base selon le mode
-        double prix;
-        if (mode == ModeTransport.ROUTE) {
-            prix = distance * ROUTE_PRIX_KM + poids * ROUTE_PRIX_KG;
-        } else if (mode == ModeTransport.RAIL) {
-            prix = distance * RAIL_PRIX_KM + poids * RAIL_PRIX_KG;
-            if (prix < RAIL_MINIMUM) prix = RAIL_MINIMUM;
-        } else if (mode == ModeTransport.MER) {
-            prix = distance * MER_PRIX_KM + poids * MER_PRIX_KG;
-            if (prix < MER_MINIMUM) prix = MER_MINIMUM;
-        } else if (mode == ModeTransport.AIR) {
-            double poidsTaxable = poids;
-            if (volume * AIR_FACTEUR_VOLUMETRIQUE > poids) {
-                poidsTaxable = volume * AIR_FACTEUR_VOLUMETRIQUE;
-            }
-            prix = distance * AIR_PRIX_KM + poidsTaxable * AIR_PRIX_KG_TAXABLE;
-        } else {
-            throw new IllegalArgumentException("Mode inconnu : " + mode);
-        }
+        double prix = tarifs.get(mode).calculer(distance, poids, volume);
 
         // suppléments
         if (fragile) prix = prix * SUPPLEMENT_FRAGILE;
@@ -72,15 +47,7 @@ public class CalculateurPrix {
         if (urgent) prix = prix * SUPPLEMENT_URGENCE;
 
         // remise client
-        if (typeClient == TypeClient.ENTREPRISE) {
-            if (prix > SEUIL_GROSSE_COMMANDE_ENTREPRISE) {
-                prix = prix * COEF_REMISE_ENTREPRISE_GROSSE_COMMANDE;
-            } else {
-                prix = prix * COEF_REMISE_ENTREPRISE;
-            }
-        } else if (typeClient == TypeClient.PREMIUM) {
-            prix = prix * COEF_REMISE_PREMIUM;
-        }
+        prix = remises.get(typeClient).appliquer(prix);
 
         // assurance
         if (assurance) {
