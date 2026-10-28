@@ -5,14 +5,6 @@ import java.util.Map;
 
 public class CalculateurPrix {
 
-    private static final double SUPPLEMENT_FRAGILE = 1.15;
-    private static final double SUPPLEMENT_DANGEREUX = 1.30;
-    private static final double SUPPLEMENT_REFRIGERE = 1.20;
-    private static final double SUPPLEMENT_URGENCE = 1.5;
-
-    private static final double TAUX_ASSURANCE = 0.02;
-    private static final double MINIMUM_ASSURANCE = 15;
-
     private final Map<ModeTransport, TarifTransport> tarifs;
     private final Map<TypeClient, PolitiqueRemise> remises;
 
@@ -22,39 +14,14 @@ public class CalculateurPrix {
     }
 
     public double calculerPrixHT(List<Colis> colis, int distance, ModeTransport mode, boolean urgent, boolean assurance, TypeClient typeClient) {
-        double poids = 0;
-        double volume = 0;
-        double valeur = 0;
-        boolean fragile = false;
-        boolean dangereux = false;
-        boolean refrigere = false;
-        for (Colis c : colis) {
-            poids = poids + c.getPoids();
-            volume = volume + c.getVolume();
-            valeur = valeur + c.getValeurDeclaree();
-            if (c.getType() == TypeMarchandise.FRAGILE) fragile = true;
-            if (c.getType() == TypeMarchandise.DANGEREUX) dangereux = true;
-            if (c.getType() == TypeMarchandise.REFRIGERE) refrigere = true;
-        }
-
-        // tarif de base selon le mode
-        double prix = tarifs.get(mode).calculer(distance, poids, volume);
-
-        // suppléments
-        if (fragile) prix = prix * SUPPLEMENT_FRAGILE;
-        if (dangereux) prix = prix * SUPPLEMENT_DANGEREUX;
-        if (refrigere) prix = prix * SUPPLEMENT_REFRIGERE;
-        if (urgent) prix = prix * SUPPLEMENT_URGENCE;
-
-        // remise client
-        prix = remises.get(typeClient).appliquer(prix);
-
-        // assurance
-        if (assurance) {
-            double montantAssurance = valeur * TAUX_ASSURANCE;
-            if (montantAssurance < MINIMUM_ASSURANCE) montantAssurance = MINIMUM_ASSURANCE;
-            prix = prix + montantAssurance;
-        }
-        return Utils.arrondir(prix);
+        ComposantPrix prix = tarifs.get(mode);
+        prix = new SupplementFragile(prix);
+        prix = new SupplementDangereux(prix);
+        prix = new SupplementRefrigere(prix);
+        // if (urgent) prix = prix * SUPPLEMENT_URGENCE;
+        if (urgent) prix = new SupplementUrgence(prix);
+        prix = new Remise(prix, remises);
+        if (assurance) prix = new Assurance(prix);
+        return Utils.arrondir(prix.calculer(colis, distance, typeClient));
     }
 }

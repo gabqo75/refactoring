@@ -20,11 +20,6 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
-/**
- * Branche le nouveau code sur les tests de contrat.
- * <p>
- * Construit le graphe d'objets et traduit les types du contrat vers ceux du nouveau code.
- */
 public class NouveauSystemeAdapter implements SystemeTransport {
 
     private ClientRepository clientRepository;
