@@ -5,6 +5,8 @@ import java.util.List;
 
 public abstract class Vehicule implements IVehicule {
 
+    protected static final double TEMPERATURE_REFRIGERATION = 4;
+
     protected String immatriculation;
     protected double capaciteMax;
     protected double chargeActuelle;
@@ -51,7 +53,16 @@ public abstract class Vehicule implements IVehicule {
         }
     }
 
-    public void faireLePlein() {
+    protected boolean contient(List<Colis> colis, TypeMarchandise type) {
+        for (Colis c : colis) {
+            if (c.getType() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected void faireLePlein() {
         System.out.println("Plein effectué pour " + immatriculation);
     }
 }

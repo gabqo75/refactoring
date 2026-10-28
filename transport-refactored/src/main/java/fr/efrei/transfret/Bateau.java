@@ -1,6 +1,10 @@
 package fr.efrei.transfret;
 
-public class Bateau extends Vehicule {
+import java.util.List;
+
+public class Bateau extends Vehicule implements Refrigerable {
+
+    private static final double KM_PAR_MILLE_NAUTIQUE = 1.852;
 
     private boolean conteneursRefrigeres;
 
@@ -9,30 +13,26 @@ public class Bateau extends Vehicule {
         this.conteneursRefrigeres = conteneursRefrigeres;
     }
 
-    public void rouler(int km) {
-        throw new UnsupportedOperationException("Un bateau ne roule pas");
+    public boolean peutPrendreEnCharge(List<Colis> colis, ModeTransport mode) {
+        if (mode != ModeTransport.MER) {
+            return false;
+        }
+        return conteneursRefrigeres || !contient(colis, TypeMarchandise.REFRIGERE);
+    }
+
+    public void partir(int distance) {
+        faireLePlein();
+        naviguer((int) (distance / KM_PAR_MILLE_NAUTIQUE));
+        if (contient(chargement, TypeMarchandise.REFRIGERE)) {
+            activerRefrigeration(TEMPERATURE_REFRIGERATION);
+        }
     }
 
     public void naviguer(int milesNautiques) {
         System.out.println("Le navire " + immatriculation + " navigue sur " + milesNautiques + " milles nautiques");
     }
 
-    public void voler(int altitude) {
-        throw new UnsupportedOperationException("Un bateau ne vole pas");
-    }
-
     public void activerRefrigeration(double temperature) {
-        if (!conteneursRefrigeres) {
-            throw new UnsupportedOperationException("Pas de conteneurs frigorifiques sur ce navire");
-        }
         System.out.println("Conteneurs frigorifiques réglés à " + temperature + "°C");
-    }
-
-    public boolean peutTransporterMatieresDangereuses() {
-        return true;
-    }
-
-    public boolean aConteneursRefrigeres() {
-        return conteneursRefrigeres;
     }
 }
